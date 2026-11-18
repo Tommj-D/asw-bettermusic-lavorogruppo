@@ -46,4 +46,12 @@ public class RecensioniServiceImpl implements RecensioniService {
 		return recensioni;
 	}
 
+	/* Cancella una recensione, dato l'id. */
+	public Recensione deleteRecensione(Long id) {
+		Recensione recensione = getRecensione(id);
+		if (recensione != null) {
+			recensioniRepository.delete(recensione);
+		}
+		return recensione;
+	}
 }
