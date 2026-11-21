@@ -1,6 +1,9 @@
 package asw.bettermusic.recensioni.domain;
 
 import org.springframework.stereotype.Service;
+
+import asw.bettermusic.recensioni.api.event.RecensioneDeletedEvent;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*; 
@@ -13,6 +16,9 @@ public class RecensioniServiceImpl implements RecensioniService {
 
 	@Autowired
 	private AlbumClientPort albumClient;
+
+	@Autowired
+	private RecensioniEventPublisherPort eventPublisher;
 
 	/* Crea una nuova recensione, a partire dai suoi dati. */ 
  	public Recensione createRecensione(String recensore, String titoloAlbum, String artistaAlbum, String testo, String sunto) {
@@ -51,6 +57,8 @@ public class RecensioniServiceImpl implements RecensioniService {
 		Recensione recensione = getRecensione(id);
 		if (recensione != null) {
 			recensioniRepository.delete(recensione);
+			RecensioneDeletedEvent event = new RecensioneDeletedEvent(recensione.getId());
+			eventPublisher.publishRecensioneDeletedEvent(event);
 		}
 		return recensione;
 	}

@@ -18,6 +18,19 @@ spring:
         queryPassing: true 
     loadbalancer: 
       ribbon.enabled: false 
+  
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# ASW
+asw:
+  kafka:
+    channel:
+      out: recensioni-service-event-channel
+
 
 server: 
   port: ${PORT:${SERVER_PORT:0}}
