@@ -179,38 +179,46 @@ Ecco alcune [note sull'Utilizzo di Kafka con Docker e Kubernetes](kafka/).
 # BetterMusic – Progetto di Architettura dei Sistemi Software (A.A. 2026-2027)
 
 ## Componenti del gruppo
-* Tommaso De Angelis 
+- Tommaso De Angelis 
 
 ---
 
 ## Scelte progettuali
 
 ### Gestione della cancellazione di una recensione (Punto 2)
-* **Endpoint REST:** nel microservizio `recensioni` è stata aggiunta l'operazione `DELETE /recensioni/{recensioneId}` all'interno di `RecensioniController`, delegata a `RecensioniService` / `RecensioniServiceImpl`.
-* **Comportamento e codici di stato HTTP:** il servizio verifica la presenza della recensione nel database HSQLDB tramite il suo identificativo. Se la recensione esiste, viene eliminata e restituita al client con stato `200 OK` (nel formato `RecensioneResponse`), coerentemente con la convenzione già adottata nel servizio `connessioni`. Se l'identificativo non corrisponde ad alcuna recensione, viene sollevata una `ResponseStatusException` con stato `404 Not Found`.
-* **Instradamento tramite API Gateway:** l'API Gateway espone l'operazione all'esterno sull'URL `DELETE /recensioni/recensioni/{recensioneId}`. Non è stata necessaria alcuna modifica alla configurazione del gateway, poiché la rotta `recensioni_route` (`Path=/recensioni/**` con filtro `StripPrefix=1`) inoltra già tutti i metodi HTTP verso il servizio `recensioni`.
+- **Endpoint REST:** nel microservizio `recensioni` è stata aggiunta l'operazione `DELETE /recensioni/{recensioneId}` all'interno di `RecensioniController`, delegata a `RecensioniService` / `RecensioniServiceImpl`.
+- **Comportamento e codici di stato HTTP:** il servizio verifica la presenza della recensione nel database HSQLDB tramite il suo identificativo. Se la recensione esiste, viene eliminata e restituita al client con stato `200 OK` (nel formato `RecensioneResponse`), coerentemente con la convenzione già adottata nel servizio `connessioni`. Se l'identificativo non corrisponde ad alcuna recensione, viene sollevata una `ResponseStatusException` con stato `404 Not Found`.
+- **Instradamento tramite API Gateway:** l'API Gateway espone l'operazione all'esterno sull'URL `DELETE /recensioni/recensioni/{recensioneId}`. Non è stata necessaria alcuna modifica alla configurazione del gateway, poiché la rotta `recensioni_route` (`Path=/recensioni/**` con filtro `StripPrefix=1`) inoltra già tutti i metodi HTTP verso il servizio `recensioni`.
+- **Evento di dominio (`recensioni-api`):** nel package `asw.bettermusic.recensioni.api.event` è stata definita la classe `RecensioneDeletedEvent`, contenente l'identificativo (`id`) della recensione eliminata, condivisa tra producer e consumer.
+- **Pubblicazione asincrona su Kafka (`recensioni`):** seguendo l'architettura esagonale (*Porte e Adattatori*) già adottata nel progetto, è stata introdotta l'interfaccia `RecensioniEventPublisherPort` nel package `domain` e la relativa implementazione `RecensioniKafkaEventPublisher` nel package `eventpublisher`. Quando `RecensioniServiceImpl.deleteRecensione(Long id)` elimina effettivamente una recensione dal database, pubblica un `RecensioneDeletedEvent` serializzato in JSON sul topic `recensioni-service-event-channel` tramite `KafkaTemplate` (configurabile tramite `asw.kafka.channel.out` e `SPRING_KAFKA_BOOTSTRAP_SERVERS`).
+- **Aggiornamento della replica locale (`recensioni-seguite`):** *(da completare in fase di integrazione con il Punto 1)* il consumer di `recensioni-seguite` intercetterà `RecensioneDeletedEvent` sullo stesso topic e rimuoverà la recensione corrispondente dalla propria replica locale HSQLDB in modo idempotente.
 
 ---
 
 ## Istruzioni per costruire ed eseguire l'applicazione
 
 ### Prerequisiti
-* Java 21, Gradle, Docker / Docker Compose, `curl` e `jq`.
+- Java 21, Gradle, Docker / Docker Compose, `curl` e `jq`.
 
-### Compilazione ed esecuzione in locale (modalità REST)
+### Compilazione ed esecuzione in locale
 1. Compilare tutti i moduli del progetto:
    ```bash
    gradle build
    ```
-2. Avviare Consul e i microservizi:
+2. Avviare Consul e Kafka (in Docker):
    ```bash
    ./start-consul.sh
+   cd kafka/docker && ./start-kafka.sh && cd ../..
+   ```
+3. Avviare i microservizi:
+   ```bash
    ./start-bettermusic.sh
    ```
-3. Per arrestare l'applicazione e Consul:
+4. Per arrestare l'applicazione, Consul e Kafka:
    ```bash
    ./stop-bettermusic.sh
    ./stop-consul.sh
+   cd kafka/docker && ./stop-kafka.sh && cd ../..
    ```
 
 ---
@@ -219,17 +227,18 @@ Ecco alcune [note sull'Utilizzo di Kafka con Docker e Kubernetes](kafka/).
 
 ### Cancellazione di una recensione (`run-test-delete-recensioni.sh`)
 Sul modello del test minimale previsto dal progetto, sono stati aggiunti due script nella root del repository:
-* `do-delete-recensioni.sh`: invia tramite API Gateway due richieste `DELETE` per rimuovere le recensioni con ID `2` e `6`.
-* `run-test-delete-recensioni.sh`: automatizza l'intero test partendo da database appena inizializzati:
+- `do-delete-recensioni.sh`: invia tramite API Gateway due richieste `DELETE` per rimuovere le recensioni con ID `2` e `6`.
+- `run-test-delete-recensioni.sh`: automatizza l'intero test partendo da database appena inizializzati:
   1. Esegue `./do-init-bettermusic-db.sh` e verifica che le recensioni seguite da **Alice, Bob e Carlo** siano inizialmente **5, 6 e 5** (su un totale di **6** recensioni).
   2. Esegue `./do-delete-recensioni.sh`, rimuovendo:
-     * la recensione **ID 2** (scritta da *Woody* sull'album *The Wall* dei *Pink Floyd*, genere *Progressive Rock*);
-     * la recensione **ID 6** (scritta da *OndaRock* sull'album *Thriller* di *Michael Jackson*, genere *Pop*).
+     - la recensione **ID 2** (scritta da *Woody* sull'album *The Wall* dei *Pink Floyd*, genere *Progressive Rock*);
+     - la recensione **ID 6** (scritta da *OndaRock* sull'album *Thriller* di *Michael Jackson*, genere *Pop*).
   3. Attende 2 secondi (`sleep 2`) per garantire la propagazione asincrona degli eventi e verifica che:
-     * le recensioni totali rimaste nel sistema scendano da **6 a 4**;
-     * le recensioni seguite aggiornate per **Alice, Bob e Carlo** scendano a **4, 4 e 4** (testando contemporaneamente l'aggiornamento per artista, per recensore e per genere).
+     - le recensioni totali rimaste nel sistema scendano da **6 a 4**;
+     - le recensioni seguite aggiornate per **Alice, Bob e Carlo** scendano a **4, 4 e 4** (testando contemporaneamente l'aggiornamento per artista, per recensore e per genere).
 
 ---
 
 ## Limiti noti
-* **Basi di dati in memoria:** ogni microservizio utilizza un database HSQLDB in-memory; al riavvio dell'applicazione tutti i dati vengono persi ed è necessario rieseguire gli script di inizializzazione.
+- **Basi di dati in memoria:** ogni microservizio utilizza un database HSQLDB in-memory; al riavvio dell'applicazione tutti i dati vengono persi ed è necessario rieseguire gli script di inizializzazione.
+- **Consistenza eventuale in modalità Kafka:** in seguito a una cancellazione, `recensioni-seguite` può impiegare alcuni millisecondi per riflettere l'eliminazione nella propria replica locale in attesa della consegna del messaggio da parte del broker Kafka.
