@@ -1,6 +1,19 @@
 # application.yml
 --- 
-spring: 
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: recensioni-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "asw.bettermusic.*"
+ 
   application: 
     name: recensioni
   cloud:
@@ -29,3 +42,8 @@ server:
 #spring.jpa.show-sql: true
 # disable OSIV
 spring.jpa.open-in-view: false
+
+asw:
+  recensioni:
+    albumclient:
+      implementation: kafka # oppure rest

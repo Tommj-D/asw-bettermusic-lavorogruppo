@@ -1,8 +1,14 @@
 # application.yml
 --- 
-spring: 
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer 
   application: 
     name: album
+  
   cloud:
     consul:
       host: localhost
