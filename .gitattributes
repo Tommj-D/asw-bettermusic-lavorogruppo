@@ -1,0 +1,2 @@
+start-docker.sh text eol=lf
+start-docker.ps1 text eol=lf
