@@ -124,6 +124,9 @@ if __name__ == '__main__':
                 name == 'postgres' and mount['Type'] == 'volume'
                 and mount['Name'] == config['volumes']['postgres-data']['name']
                 and mount['Destination'] == '/var/lib/postgresql' and mount['RW']
+            ) or (
+                name == 'postgres' and mount['Type'] == 'bind'
+                and mount['Destination'] == '/docker-entrypoint-initdb.d/init-databases.sh' and not mount['RW']
             ), (name, mount)
         status = shell(name, 'cat /proc/1/status')
         fields = dict(line.split(':', 1) for line in status.splitlines() if ':' in line)

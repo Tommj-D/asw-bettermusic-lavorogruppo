@@ -19,8 +19,9 @@ public class Recensione implements Comparable<Recensione> {
 	private String recensore; 
 	/* id dell'album oggetto della recensione */ 
 	private Long idAlbum; 
-	/* testo della recensione */ 
-	private String testo; 
+	/* testo della recensione */
+	@Column(columnDefinition = "TEXT")  
+	private String testo;
 	/* sunto del testo della recensione */ 
 	private String sunto; 
 
