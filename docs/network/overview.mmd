@@ -1,0 +1,28 @@
+%% Generated from docker-compose.yml.
+flowchart LR
+  host(["127.0.0.1:8080"])
+  c_album["album<br/>8080"]
+  c_api_gateway["api-gateway<br/>8080"]
+  c_connessioni["connessioni<br/>8080"]
+  c_consul["consul<br/>8500"]
+  c_postgres["postgres<br/>5432"]
+  c_recensioni["recensioni<br/>8080"]
+  c_recensioni_seguite["recensioni-seguite<br/>8080"]
+  host --> c_api_gateway
+  c_album -.->|"discovery / health inverso"| c_consul
+  c_connessioni -.->|"discovery / health inverso"| c_consul
+  c_api_gateway -.->|"discovery / health inverso"| c_consul
+  c_recensioni -.->|"discovery / health inverso"| c_consul
+  c_recensioni_seguite -.->|"discovery / health inverso"| c_consul
+  c_api_gateway -->|"REST / gateway-album"| c_album
+  c_api_gateway -->|"REST / gateway-connessioni"| c_connessioni
+  c_api_gateway -->|"REST / gateway-recensioni"| c_recensioni
+  c_api_gateway -->|"REST / gateway-seguite"| c_recensioni_seguite
+  c_album -.->|"TCP 5432 predisposto / postgres-album"| c_postgres
+  c_connessioni -.->|"TCP 5432 predisposto / postgres-connessioni"| c_postgres
+  c_recensioni -.->|"TCP 5432 predisposto / postgres-recensioni"| c_postgres
+  c_recensioni_seguite -.->|"TCP 5432 predisposto / postgres-seguite"| c_postgres
+  c_recensioni -->|"REST / recensioni-album"| c_album
+  c_recensioni_seguite -->|"REST / seguite-album"| c_album
+  c_recensioni_seguite -->|"REST / seguite-connessioni"| c_connessioni
+  c_recensioni_seguite -->|"REST / seguite-recensioni"| c_recensioni

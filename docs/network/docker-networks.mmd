@@ -1,0 +1,64 @@
+%% Generated from docker-compose.yml. Run docker/scripts/generate-network-docs.py.
+flowchart LR
+  host(["Host: 127.0.0.1:8080"])
+  c_album["album<br/>8080"]
+  c_api_gateway["api-gateway<br/>8080"]
+  c_connessioni["connessioni<br/>8080"]
+  c_consul["consul<br/>8500"]
+  c_postgres["postgres<br/>5432"]
+  c_recensioni["recensioni<br/>8080"]
+  c_recensioni_seguite["recensioni-seguite<br/>8080"]
+  n_consul_album(("consul-album<br/>bridge internal"))
+  c_album --- n_consul_album
+  c_consul --- n_consul_album
+  n_consul_connessioni(("consul-connessioni<br/>bridge internal"))
+  c_connessioni --- n_consul_connessioni
+  c_consul --- n_consul_connessioni
+  n_consul_gateway(("consul-gateway<br/>bridge internal"))
+  c_api_gateway --- n_consul_gateway
+  c_consul --- n_consul_gateway
+  n_consul_recensioni(("consul-recensioni<br/>bridge internal"))
+  c_consul --- n_consul_recensioni
+  c_recensioni --- n_consul_recensioni
+  n_consul_seguite(("consul-seguite<br/>bridge internal"))
+  c_consul --- n_consul_seguite
+  c_recensioni_seguite --- n_consul_seguite
+  n_gateway_album(("gateway-album<br/>bridge internal"))
+  c_album --- n_gateway_album
+  c_api_gateway --- n_gateway_album
+  n_gateway_connessioni(("gateway-connessioni<br/>bridge internal"))
+  c_api_gateway --- n_gateway_connessioni
+  c_connessioni --- n_gateway_connessioni
+  n_gateway_recensioni(("gateway-recensioni<br/>bridge internal"))
+  c_api_gateway --- n_gateway_recensioni
+  c_recensioni --- n_gateway_recensioni
+  n_gateway_seguite(("gateway-seguite<br/>bridge internal"))
+  c_api_gateway --- n_gateway_seguite
+  c_recensioni_seguite --- n_gateway_seguite
+  n_postgres_album(("postgres-album<br/>bridge internal"))
+  c_album --- n_postgres_album
+  c_postgres --- n_postgres_album
+  n_postgres_connessioni(("postgres-connessioni<br/>bridge internal"))
+  c_connessioni --- n_postgres_connessioni
+  c_postgres --- n_postgres_connessioni
+  n_postgres_recensioni(("postgres-recensioni<br/>bridge internal"))
+  c_postgres --- n_postgres_recensioni
+  c_recensioni --- n_postgres_recensioni
+  n_postgres_seguite(("postgres-seguite<br/>bridge internal"))
+  c_postgres --- n_postgres_seguite
+  c_recensioni_seguite --- n_postgres_seguite
+  n_public(("public<br/>bridge public"))
+  c_api_gateway --- n_public
+  n_recensioni_album(("recensioni-album<br/>bridge internal"))
+  c_album --- n_recensioni_album
+  c_recensioni --- n_recensioni_album
+  n_seguite_album(("seguite-album<br/>bridge internal"))
+  c_album --- n_seguite_album
+  c_recensioni_seguite --- n_seguite_album
+  n_seguite_connessioni(("seguite-connessioni<br/>bridge internal"))
+  c_connessioni --- n_seguite_connessioni
+  c_recensioni_seguite --- n_seguite_connessioni
+  n_seguite_recensioni(("seguite-recensioni<br/>bridge internal"))
+  c_recensioni --- n_seguite_recensioni
+  c_recensioni_seguite --- n_seguite_recensioni
+  host -->|"port publishing TCP 8080"| n_public

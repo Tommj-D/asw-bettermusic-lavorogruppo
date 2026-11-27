@@ -1,0 +1,21 @@
+{
+  "node_name": "bettermusic-consul",
+  "datacenter": "bettermusic",
+  "server": true,
+  "bootstrap_expect": 1,
+  "data_dir": "/consul/data",
+  "bind_addr": "127.0.0.1",
+  "advertise_addr": "127.0.0.1",
+  "client_addr": "0.0.0.0",
+  "disable_update_check": true,
+  "disable_remote_exec": true,
+  "enable_script_checks": false,
+  "enable_local_script_checks": false,
+  "connect": {"enabled": false},
+  "ports": {"dns": -1, "grpc": -1, "grpc_tls": -1, "serf_wan": -1},
+  "ui_config": {"enabled": false},
+  "http_config": {
+    "block_endpoints": ["/v1/agent/connect", "/v1/connect", "/v1/agent/exec", "/v1/event", "/v1/kv"]
+  },
+  "log_level": "INFO"
+}

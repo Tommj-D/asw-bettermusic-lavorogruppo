@@ -1,7 +1,189 @@
 name: bettermusic
 
+x-hardening: &hardening
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  sysctls:
+    net.ipv4.ip_forward: "0"
+  pids_limit: 256
+  restart: unless-stopped
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+x-app-env: &app-env
+  SERVER_PORT: "8080"
+  PORT: "8080"
+  SPRING_CLOUD_CONSUL_HOST: consul
+  SPRING_CLOUD_CONSUL_PORT: "8500"
+  SPRING_CLOUD_CONSUL_DISCOVERY_PREFERIPADDRESS: "false"
+  SPRING_CLOUD_CONSUL_DISCOVERY_PREFERAGENTADDRESS: "false"
+  SPRING_CLOUD_CONSUL_DISCOVERY_QUERYPASSING: "true"
+  # Disable experimental deregistration: temporarily failed instances can recover.
+  SPRING_CLOUD_CONSUL_DISCOVERY_HEALTHCHECKCRITICALTIMEOUT: ""
+  SPRING_CLOUD_CONSUL_DISCOVERY_HEALTHCHECKTIMEOUT: "5s"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+  MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS: never
+  JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:InitialRAMPercentage=15 -XX:MaxRAMPercentage=60 -XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -Djava.io.tmpdir=/tmp}
+
+x-app: &app
+  <<: *hardening
+  user: "10001:10001"
+  init: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,size=128m,mode=1777
+  mem_limit: ${APP_MEMORY_LIMIT:-768m}
+  cpus: ${APP_CPU_LIMIT:-1.0}
+  healthcheck:
+    test: [CMD, wget, -q, -T, "4", -O, /dev/null, "http://127.0.0.1:8080/actuator/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+    start_period: 90s
+
 services:
+  postgres:
+    <<: *hardening
+    image: postgres:18-alpine
+    user: "70:70"
+    environment:
+      # Only PostgreSQL's default administrative user and database.
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Impostare POSTGRES_PASSWORD prima di avviare PostgreSQL}
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-512m}
+    cpus: ${POSTGRES_CPU_LIMIT:-1.0}
+    shm_size: 128mb
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
+      - /var/run/postgresql:rw,noexec,nosuid,nodev,size=16m,uid=70,gid=70,mode=3775
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, postgres, -d, postgres]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [postgres-album, postgres-recensioni, postgres-connessioni, postgres-seguite]
+
   consul:
-    image: docker.io/hashicorp/consul:latest
-    ports:
-      - "8500:8500"
+    <<: *hardening
+    image: hashicorp/consul:1.22.0
+    user: "100:1000"
+    # Bypass root-oriented chown/setcap operations in the upstream entrypoint.
+    entrypoint: [consul]
+    command: [agent, -config-file=/consul/config/bettermusic.json]
+    mem_limit: ${CONSUL_MEMORY_LIMIT:-256m}
+    cpus: ${CONSUL_CPU_LIMIT:-0.75}
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
+      - /consul/data:rw,noexec,nosuid,nodev,size=128m,uid=100,gid=1000,mode=0700
+    volumes:
+      - ./docker/consul/consul.json:/consul/config/bettermusic.json:ro
+    healthcheck:
+      test: [CMD-SHELL, "consul members -http-addr=http://127.0.0.1:8500 | grep -q alive && curl -fsS http://127.0.0.1:8500/v1/status/leader | grep -q ':8300'"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+    networks: [consul-gateway, consul-album, consul-recensioni, consul-connessioni, consul-seguite]
+
+  album:
+    <<: *app
+    build:
+      context: .
+      args: {SERVICE: album}
+    environment:
+      <<: *app-env
+      SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: album
+      SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: album-docker
+    depends_on:
+      consul: {condition: service_healthy}
+    networks: [gateway-album, recensioni-album, seguite-album, consul-album, postgres-album]
+
+  connessioni:
+    <<: *app
+    build:
+      context: .
+      args: {SERVICE: connessioni}
+    environment:
+      <<: *app-env
+      SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: connessioni
+      SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: connessioni-docker
+    depends_on:
+      consul: {condition: service_healthy}
+    networks: [gateway-connessioni, seguite-connessioni, consul-connessioni, postgres-connessioni]
+
+  recensioni:
+    <<: *app
+    build:
+      context: .
+      args: {SERVICE: recensioni}
+    environment:
+      <<: *app-env
+      SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: recensioni
+      SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: recensioni-docker
+    depends_on:
+      consul: {condition: service_healthy}
+      album: {condition: service_healthy}
+    networks: [gateway-recensioni, recensioni-album, seguite-recensioni, consul-recensioni, postgres-recensioni]
+
+  recensioni-seguite:
+    <<: *app
+    build:
+      context: .
+      args: {SERVICE: recensioni-seguite}
+    environment:
+      <<: *app-env
+      SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: recensioni-seguite
+      SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: recensioni-seguite-docker
+    depends_on:
+      consul: {condition: service_healthy}
+      album: {condition: service_healthy}
+      recensioni: {condition: service_healthy}
+      connessioni: {condition: service_healthy}
+    networks: [gateway-seguite, seguite-album, seguite-recensioni, seguite-connessioni, consul-seguite, postgres-seguite]
+
+  api-gateway:
+    <<: *app
+    build:
+      context: .
+      args: {SERVICE: api-gateway}
+    environment:
+      <<: *app-env
+      SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: api-gateway
+      SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: apigateway-docker
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      consul: {condition: service_healthy}
+      album: {condition: service_healthy}
+      recensioni: {condition: service_healthy}
+      connessioni: {condition: service_healthy}
+      recensioni-seguite: {condition: service_healthy}
+    networks: [public, gateway-album, gateway-recensioni, gateway-connessioni, gateway-seguite, consul-gateway]
+
+networks:
+  public: {driver: bridge, internal: false}
+  gateway-album: {driver: bridge, internal: true}
+  gateway-recensioni: {driver: bridge, internal: true}
+  gateway-connessioni: {driver: bridge, internal: true}
+  gateway-seguite: {driver: bridge, internal: true}
+  recensioni-album: {driver: bridge, internal: true}
+  seguite-album: {driver: bridge, internal: true}
+  seguite-recensioni: {driver: bridge, internal: true}
+  seguite-connessioni: {driver: bridge, internal: true}
+  consul-gateway: {driver: bridge, internal: true}
+  consul-album: {driver: bridge, internal: true}
+  consul-recensioni: {driver: bridge, internal: true}
+  consul-connessioni: {driver: bridge, internal: true}
+  consul-seguite: {driver: bridge, internal: true}
+  postgres-album: {driver: bridge, internal: true}
+  postgres-recensioni: {driver: bridge, internal: true}
+  postgres-connessioni: {driver: bridge, internal: true}
+  postgres-seguite: {driver: bridge, internal: true}
+
+volumes:
+  postgres-data:
