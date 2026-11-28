@@ -9,13 +9,13 @@ import java.util.*;
 public class ConnessioniServiceImpl implements ConnessioniService {
 
 	@Autowired
-	private ConnessioniRepository connessioniRepository;
+	private ConnessioniRepository connessioniRepository; @Autowired private ConnessioniEventPublisherPort eventPublisher;
 
 	/* Crea una nuova connessione, dati utente, seguito e ruolo. */ 
  	public Connessione createConnessione(String utente, String seguito, String ruolo) {
 		Connessione connessione = new Connessione(utente, seguito, ruolo); 
 		try {
-			connessione = connessioniRepository.save(connessione);
+			connessione = connessioniRepository.save(connessione); eventPublisher.publishConnessioneCreated(connessione);
 			return connessione;
 		} catch(Exception e) {
 			/* si potrebbe verificare un'eccezione se è violato il vincolo di unicità della connessione */ 
@@ -63,7 +63,7 @@ public class ConnessioniServiceImpl implements ConnessioniService {
  	public Connessione deleteConnessione(String utente, String seguito, String ruolo) {
 		Connessione connessione = getConnessione(utente, seguito, ruolo); 
 		if (connessione!=null) {
-			connessioniRepository.delete(connessione);
+			connessioniRepository.delete(connessione); eventPublisher.publishConnessioneDeleted(connessione);
 		}
 		return connessione; 
 	}

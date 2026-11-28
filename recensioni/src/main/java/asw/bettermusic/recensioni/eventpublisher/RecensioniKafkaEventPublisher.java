@@ -1,7 +1,7 @@
 package asw.bettermusic.recensioni.eventpublisher;
 
 import asw.bettermusic.recensioni.api.event.RecensioneDeletedEvent;
-import asw.bettermusic.recensioni.domain.RecensioniEventPublisherPort;
+import asw.bettermusic.recensioni.api.event.RecensioneCreatedEvent; import asw.bettermusic.recensioni.domain.Recensione; import asw.bettermusic.recensioni.domain.RecensioniEventPublisherPort;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +22,7 @@ public class RecensioniKafkaEventPublisher implements RecensioniEventPublisherPo
 	private String channel;
 
 	@Override
-	public void publishRecensioneDeletedEvent(RecensioneDeletedEvent event) {
+	public void publishRecensioneCreated(Recensione r) { kafkaTemplate.send(channel, String.valueOf(r.getId()), new RecensioneCreatedEvent(r.getId(), r.getRecensore(), r.getIdAlbum(), r.getSunto())); } @Override public void publishRecensioneDeletedEvent(RecensioneDeletedEvent event) {
 		logger.info("KAFKA EVENT PUBLISHER: publishing " + event + " on channel " + channel);
 		kafkaTemplate.send(channel, event);
 	}

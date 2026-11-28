@@ -9,13 +9,13 @@ import java.util.*;
 public class AlbumServiceImpl implements AlbumService {
 
 	@Autowired
-	private AlbumRepository albumRepository;
+	private AlbumRepository albumRepository; @Autowired private AlbumEventPublisherPort eventPublisher;
 
 	/* Crea un nuovo album, a partire dai suoi dati. */ 
 	public Album createAlbum(String titolo, String artista, Set<String> generi) {
 		Album album = new Album(titolo, artista, generi); 
 		try {
-			album = albumRepository.save(album);
+			album = albumRepository.save(album); eventPublisher.publishAlbumCreated(album);
 			return album;
 		} catch(Exception e) {
 			/* si potrebbe verificare un'eccezione se è violato il vincolo di unicità dell'album */ 

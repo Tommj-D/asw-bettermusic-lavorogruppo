@@ -4,6 +4,6 @@ import asw.bettermusic.recensioni.api.event.RecensioneDeletedEvent;
 
 public interface RecensioniEventPublisherPort {
 
-	void publishRecensioneDeletedEvent(RecensioneDeletedEvent event);
+	void publishRecensioneCreated(Recensione recensione); void publishRecensioneDeletedEvent(RecensioneDeletedEvent event);
 
 }

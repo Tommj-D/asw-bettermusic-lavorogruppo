@@ -49,3 +49,16 @@ server:
 
 # fa il logging dei comandi sql eseguiti 
 #spring.jpa.show-sql: true
+
+  consumer:
+    group-id: recensioni-group
+    auto-offset-reset: earliest
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    properties:
+      spring.json.trusted.packages: "asw.bettermusic.*"
+
+asw:
+  recensioni:
+    albumclient:
+      implementation: rest

@@ -1,20 +1,18 @@
 package asw.bettermusic.recensioni.domain;
 
-import lombok.*; 
+import jakarta.persistence.*;
+import lombok.*;
+import java.util.*;
 
-import java.util.*; 
-
-/* Un album. */  
+@Entity
 @Data @NoArgsConstructor @AllArgsConstructor
 public class Album {
 
-	/* id dell'album */ 
-	private Long id; 
-	/* titolo dell'album */ 
-	private String titolo; 
-	/* artista dell'album */ 
-	private String artista; 
-	/* generi dell'album */ 
-	private Set<String> generi; 
-	
+    @Id
+    private Long id;
+    private String titolo;
+    private String artista;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    private Set<String> generi;
 }

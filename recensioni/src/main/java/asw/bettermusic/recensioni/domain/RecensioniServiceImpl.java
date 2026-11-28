@@ -24,7 +24,7 @@ public class RecensioniServiceImpl implements RecensioniService {
  	public Recensione createRecensione(String recensore, String titoloAlbum, String artistaAlbum, String testo, String sunto) {
 		Album album = albumClient.getAlbum(titoloAlbum, artistaAlbum);
 		Recensione recensione = new Recensione(recensore, album.getId(),  testo, sunto); 
-		recensione = recensioniRepository.save(recensione);
+		recensione = recensioniRepository.save(recensione); eventPublisher.publishRecensioneCreated(recensione);
 		return recensione;
 	}
 

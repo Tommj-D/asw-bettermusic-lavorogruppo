@@ -7,7 +7,7 @@ import asw.bettermusic.album.api.rest.*;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
@@ -18,7 +18,7 @@ import java.util.*;
 import java.util.stream.*; 
 
 @Service 
-@Primary 
+@ConditionalOnProperty(name = "asw.recensioni.albumclient.implementation", havingValue = "rest", matchIfMissing = true)
 public class AlbumRestClientAdapter implements AlbumClientPort {
 
 	@Autowired 
