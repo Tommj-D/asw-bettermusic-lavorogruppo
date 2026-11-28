@@ -2,13 +2,21 @@
 --- 
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer 
   application: 
     name: album
-  
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/album_db
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
   cloud:
     consul:
       host: localhost
@@ -33,5 +41,3 @@ server:
 
 # fa il logging dei comandi sql eseguiti 
 #spring.jpa.show-sql: true
-# disable OSIV
-spring.jpa.open-in-view: false

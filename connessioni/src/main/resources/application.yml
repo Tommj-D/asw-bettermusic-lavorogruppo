@@ -8,6 +8,15 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer 
   application: 
     name: connessioni
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/connessioni_db
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
   cloud:
     consul:
       host: localhost
@@ -32,5 +41,3 @@ server:
 
 # fa il logging dei comandi sql eseguiti 
 #spring.jpa.show-sql: true
-# disable OSIV
-spring.jpa.open-in-view: false

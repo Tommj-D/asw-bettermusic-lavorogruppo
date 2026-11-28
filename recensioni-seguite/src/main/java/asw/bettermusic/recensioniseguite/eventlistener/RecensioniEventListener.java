@@ -10,7 +10,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
-@KafkaListener(topics = "recensioni-events", groupId = "${spring.kafka.consumer.group-id}")
+@KafkaListener(topics = "${asw.kafka.channel.in:recensioni-service-event-channel}", groupId = "${spring.kafka.consumer.group-id}")
 public class RecensioniEventListener {
 
     @Autowired

@@ -60,8 +60,12 @@ def validate():
         assert not service.get('cap_add'), name
         for mount in service.get('volumes', []):
             if name == 'postgres':
-                assert mount['type'] == 'volume' and mount['source'] == 'postgres-data', mount
-                assert mount['target'] == '/var/lib/postgresql' and not mount.get('read_only'), mount
+                assert (
+                 (mount['type'] == 'volume' and mount['source'] == 'postgres-data'
+                  and mount['target'] == '/var/lib/postgresql' and not mount.get('read_only'))
+                 or (mount.get('read_only')
+                     and mount['target'] == '/docker-entrypoint-initdb.d/init-databases.sh')
+                ), mount
             else:
                 assert mount['read_only'] and mount['target'] == '/consul/config/bettermusic.json', name
         if name == 'api-gateway':
@@ -73,7 +77,7 @@ def validate():
         if name == 'postgres':
             assert service['image'] == 'postgres:18-alpine', name
             assert service['user'] == '70:70', name
-            assert len(service['volumes']) == 1, name
+            assert len(service['volumes']) == 2, name
             assert service['environment']['POSTGRES_USER'] == 'postgres', name
             assert service['environment']['POSTGRES_DB'] == 'postgres', name
             assert service['environment']['POSTGRES_PASSWORD'], name

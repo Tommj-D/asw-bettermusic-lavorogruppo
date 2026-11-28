@@ -1,9 +1,12 @@
 package asw.bettermusic.recensioni.domain;
 
 import org.springframework.stereotype.Service;
+
+import asw.bettermusic.recensioni.api.event.RecensioneDeletedEvent;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.*;
+import java.util.*; 
 
 @Service
 public class RecensioniServiceImpl implements RecensioniService {
@@ -17,37 +20,46 @@ public class RecensioniServiceImpl implements RecensioniService {
 	@Autowired
 	private RecensioniEventPublisherPort eventPublisher;
 
-	/* Crea una nuova recensione, a partire dai suoi dati. */
-	public Recensione createRecensione(String recensore, String titoloAlbum, String artistaAlbum, String testo, String sunto) {
+	/* Crea una nuova recensione, a partire dai suoi dati. */ 
+ 	public Recensione createRecensione(String recensore, String titoloAlbum, String artistaAlbum, String testo, String sunto) {
 		Album album = albumClient.getAlbum(titoloAlbum, artistaAlbum);
-		Recensione recensione = new Recensione(recensore, album.getId(), testo, sunto);
-		recensione = recensioniRepository.save(recensione);
-		eventPublisher.publishRecensioneCreated(recensione);
+		Recensione recensione = new Recensione(recensore, album.getId(),  testo, sunto); 
+		recensione = recensioniRepository.save(recensione); eventPublisher.publishRecensioneCreated(recensione);
 		return recensione;
 	}
 
-	/* Trova una recensione, dato l'id. */
-	public Recensione getRecensione(Long id) {
+	/* Trova una recensione, dato l'id. */ 
+ 	public Recensione getRecensione(Long id) {
 		Recensione recensione = recensioniRepository.findById(id).orElse(null);
 		return recensione;
 	}
 
-	/* Trova tutte le recensioni. */
+	/* Trova tutte le recensioni. */ 
 	public Collection<Recensione> getRecensioni() {
 		Collection<Recensione> recensioni = recensioniRepository.findAll();
 		return recensioni;
 	}
 
-	/* Trova tutte le recensioni di un album, dato l'id. */
-	public Collection<Recensione> getRecensioniByIdAlbum(Long idAlbum) {
+	/* Trova tutte le recensioni di un album, dato l'id. */ 
+	public Collection<Recensione> getRecensioniByIdAlbum(Long idAlbum) { 
 		Collection<Recensione> recensioni = recensioniRepository.findByIdAlbum(idAlbum);
 		return recensioni;
 	}
 
-	/* Trova tutte le recensioni scritte da un recensore. */
+	/* Trova tutte le recensioni scritte da un recensore. */ 
 	public Collection<Recensione> getRecensioniByRecensore(String recensore) {
 		Collection<Recensione> recensioni = recensioniRepository.findByRecensore(recensore);
 		return recensioni;
 	}
 
+	/* Cancella una recensione, dato l'id. */
+	public Recensione deleteRecensione(Long id) {
+		Recensione recensione = getRecensione(id);
+		if (recensione != null) {
+			recensioniRepository.delete(recensione);
+			RecensioneDeletedEvent event = new RecensioneDeletedEvent(recensione.getId());
+			eventPublisher.publishRecensioneDeletedEvent(event);
+		}
+		return recensione;
+	}
 }

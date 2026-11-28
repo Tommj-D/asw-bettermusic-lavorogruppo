@@ -1,32 +1,30 @@
 package asw.bettermusic.recensioni.eventpublisher;
 
-import asw.bettermusic.recensioni.api.event.RecensioneCreatedEvent;
 import asw.bettermusic.recensioni.api.event.RecensioneDeletedEvent;
-import asw.bettermusic.recensioni.domain.Recensione;
-import asw.bettermusic.recensioni.domain.RecensioniEventPublisherPort;
+import asw.bettermusic.recensioni.api.event.RecensioneCreatedEvent; import asw.bettermusic.recensioni.domain.Recensione; import asw.bettermusic.recensioni.domain.RecensioniEventPublisherPort;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.logging.Logger;
 
 @Component
 public class RecensioniKafkaEventPublisher implements RecensioniEventPublisherPort {
 
-    private static final String TOPIC = "recensioni-events";
+	private final Logger logger = Logger.getLogger(this.getClass().toString());
 
-    @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+	@Autowired
+	private KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Override
-    public void publishRecensioneCreated(Recensione r) {
-        RecensioneCreatedEvent event = new RecensioneCreatedEvent(
-            r.getId(), r.getRecensore(), r.getIdAlbum(), r.getSunto()
-        );
-        kafkaTemplate.send(TOPIC, String.valueOf(r.getId()), event);
-    }
+	@Value("${asw.kafka.channel.out:recensioni-service-event-channel}")
+	private String channel;
 
-    @Override
-    public void publishRecensioneDeleted(Long id) {
-        RecensioneDeletedEvent event = new RecensioneDeletedEvent(id);
-        kafkaTemplate.send(TOPIC, String.valueOf(id), event);
-    }
+	@Override
+	public void publishRecensioneCreated(Recensione r) { kafkaTemplate.send(channel, String.valueOf(r.getId()), new RecensioneCreatedEvent(r.getId(), r.getRecensore(), r.getIdAlbum(), r.getSunto())); } @Override public void publishRecensioneDeletedEvent(RecensioneDeletedEvent event) {
+		logger.info("KAFKA EVENT PUBLISHER: publishing " + event + " on channel " + channel);
+		kafkaTemplate.send(channel, event);
+	}
+
 }

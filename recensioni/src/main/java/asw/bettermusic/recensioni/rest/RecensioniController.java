@@ -22,6 +22,8 @@ import java.util.stream.*;
 
 import java.util.logging.Logger; 
 
+import org.springframework.web.bind.annotation.DeleteMapping;
+
 @RestController
 public class RecensioniController {
 
@@ -127,6 +129,24 @@ public class RecensioniController {
 				.map(r -> toRecensioneBreveResponse(r))
 				.collect(Collectors.toList());
 		return response; 
+	}
+
+	
+	/* Cancella la recensione con recensioneId. */
+	@DeleteMapping("/recensioni/{recensioneId}")
+	public RecensioneResponse deleteRecensione(@PathVariable Long recensioneId) {
+		logger.info("REST CALL: deleteRecensione " + recensioneId);
+		Recensione recensione = recensioniService.deleteRecensione(recensioneId);
+		if (recensione != null) {
+			RecensioneResponse response = toRecensioneResponse(recensione);
+			logger.info("REST CALL: deleteRecensione " + recensioneId + " --> " + response + " *** DELETED ***");
+			return response;
+		} else {
+			logger.info("REST CALL: deleteRecensione " + recensioneId + " ==> NOT FOUND");
+			throw new ResponseStatusException(
+				HttpStatus.NOT_FOUND, "Recensione not found"
+			);
+		}
 	}
 
 }
