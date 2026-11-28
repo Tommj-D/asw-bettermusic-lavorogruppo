@@ -53,6 +53,14 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Impostare POSTGRES_PASSWORD prima di avviare PostgreSQL}
+      ALBUM_DB_USER: album_user
+      ALBUM_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      RECENSIONI_DB_USER: recensioni_user
+      RECENSIONI_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CONNESSIONI_DB_USER: connessioni_user
+      CONNESSIONI_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      SEGUITE_DB_USER: seguite_user
+      SEGUITE_DB_PASSWORD: ${POSTGRES_PASSWORD}
     mem_limit: ${POSTGRES_MEMORY_LIMIT:-512m}
     cpus: ${POSTGRES_CPU_LIMIT:-1.0}
     shm_size: 128mb
@@ -61,6 +69,7 @@ services:
       - /var/run/postgresql:rw,noexec,nosuid,nodev,size=16m,uid=70,gid=70,mode=3775
     volumes:
       - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     healthcheck:
       test: [CMD, pg_isready, -h, 127.0.0.1, -U, postgres, -d, postgres]
       interval: 5s
@@ -100,8 +109,13 @@ services:
       <<: *app-env
       SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: album
       SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: album-docker
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: album_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       consul: {condition: service_healthy}
+      postgres: {condition: service_healthy}
     networks: [gateway-album, recensioni-album, seguite-album, consul-album, postgres-album]
 
   connessioni:
@@ -113,8 +127,13 @@ services:
       <<: *app-env
       SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: connessioni
       SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: connessioni-docker
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: connessioni_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       consul: {condition: service_healthy}
+      postgres: {condition: service_healthy}
     networks: [gateway-connessioni, seguite-connessioni, consul-connessioni, postgres-connessioni]
 
   recensioni:
@@ -126,8 +145,13 @@ services:
       <<: *app-env
       SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: recensioni
       SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: recensioni-docker
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: recensioni_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       consul: {condition: service_healthy}
+      postgres: {condition: service_healthy}
       album: {condition: service_healthy}
     networks: [gateway-recensioni, recensioni-album, seguite-recensioni, consul-recensioni, postgres-recensioni]
 
@@ -140,8 +164,13 @@ services:
       <<: *app-env
       SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: recensioni-seguite
       SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCEID: recensioni-seguite-docker
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: seguite_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       consul: {condition: service_healthy}
+      postgres: {condition: service_healthy}
       album: {condition: service_healthy}
       recensioni: {condition: service_healthy}
       connessioni: {condition: service_healthy}
