@@ -205,7 +205,7 @@ services:
       album: {condition: service_healthy}
       recensioni: {condition: service_healthy}
       connessioni: {condition: service_healthy}
-    networks: [gateway-seguite, seguite-album, seguite-recensioni, seguite-connessioni, consul-seguite, postgres-seguite]
+    networks: [gateway-seguite, seguite-album, seguite-recensioni, seguite-connessioni, consul-seguite, postgres-seguite, kafka-seguite]
 
   api-gateway:
     <<: *app
